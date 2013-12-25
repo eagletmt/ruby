@@ -595,6 +595,8 @@ get_event_id(rb_event_flag_t event)
 	C(b_return, B_RETURN);
 	C(thread_begin, THREAD_BEGIN);
 	C(thread_end, THREAD_END);
+	C(branch_true, BRANCH_TRUE);
+	C(branch_false, BRANCH_FALSE);
 	C(specified_line, SPECIFIED_LINE);
       case RUBY_EVENT_LINE | RUBY_EVENT_SPECIFIED_LINE: CONST_ID(id, "line"); return id;
 #undef C
@@ -698,6 +700,8 @@ symbol2event_flag(VALUE v)
     C(b_return, B_RETURN);
     C(thread_begin, THREAD_BEGIN);
     C(thread_end, THREAD_END);
+    C(branch_true, BRANCH_TRUE);
+    C(branch_false, BRANCH_FALSE);
     C(specified_line, SPECIFIED_LINE);
 #undef C
     CONST_ID(id, "a_call"); if (sym == ID2SYM(id)) return RUBY_EVENT_CALL | RUBY_EVENT_B_CALL | RUBY_EVENT_C_CALL;

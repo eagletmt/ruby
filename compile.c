@@ -3245,10 +3245,12 @@ iseq_compile_each(rb_iseq_t *iseq, LINK_ANCHOR *ret, NODE * node, int poped)
 	ADD_SEQ(ret, cond_seq);
 
 	ADD_LABEL(ret, then_label);
+	ADD_TRACE(ret, line, RUBY_EVENT_BRANCH_TRUE);
 	ADD_SEQ(ret, then_seq);
 	ADD_INSNL(ret, line, jump, end_label);
 
 	ADD_LABEL(ret, else_label);
+	ADD_TRACE(ret, line, RUBY_EVENT_BRANCH_FALSE);
 	ADD_SEQ(ret, else_seq);
 
 	ADD_LABEL(ret, end_label);
@@ -3293,13 +3295,14 @@ iseq_compile_each(rb_iseq_t *iseq, LINK_ANCHOR *ret, NODE * node, int poped)
 	while (type == NODE_WHEN) {
 	    LABEL *l1;
 
+	    vals = node->nd_head;
 	    l1 = NEW_LABEL(line);
 	    ADD_LABEL(body_seq, l1);
+	    ADD_TRACE(body_seq, nd_line(vals), RUBY_EVENT_BRANCH_TRUE);
 	    ADD_INSN(body_seq, line, pop);
 	    COMPILE_(body_seq, "when body", node->nd_body, poped);
 	    ADD_INSNL(body_seq, line, jump, endlabel);
 
-	    vals = node->nd_head;
 	    if (vals) {
 		switch (nd_type(vals)) {
 		  case NODE_ARRAY:
@@ -3322,6 +3325,7 @@ iseq_compile_each(rb_iseq_t *iseq, LINK_ANCHOR *ret, NODE * node, int poped)
 	    else {
 		rb_bug("NODE_CASE: must be NODE_ARRAY, but 0");
 	    }
+	    ADD_TRACE(cond_seq, nd_line(vals), RUBY_EVENT_BRANCH_FALSE);
 
 	    node = node->nd_next;
 	    if (!node) {
@@ -3333,6 +3337,9 @@ iseq_compile_each(rb_iseq_t *iseq, LINK_ANCHOR *ret, NODE * node, int poped)
 	/* else */
 	if (node) {
 	    ADD_LABEL(cond_seq, elselabel);
+	    if (only_special_literals) {
+	        ADD_TRACE(cond_seq, nd_line(tempnode), RUBY_EVENT_BRANCH_FALSE);
+	    }
 	    ADD_INSN(cond_seq, line, pop);
 	    COMPILE_(cond_seq, "else", node, poped);
 	    ADD_INSNL(cond_seq, line, jump, endlabel);
@@ -3340,6 +3347,9 @@ iseq_compile_each(rb_iseq_t *iseq, LINK_ANCHOR *ret, NODE * node, int poped)
 	else {
 	    debugs("== else (implicit)\n");
 	    ADD_LABEL(cond_seq, elselabel);
+	    if (only_special_literals) {
+	        ADD_TRACE(cond_seq, nd_line(tempnode), RUBY_EVENT_BRANCH_FALSE);
+	    }
 	    ADD_INSN(cond_seq, nd_line(tempnode), pop);
 	    if (!poped) {
 		ADD_INSN(cond_seq, nd_line(tempnode), putnil);

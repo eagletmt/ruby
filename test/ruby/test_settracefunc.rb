@@ -1066,4 +1066,126 @@ class TestSetTraceFunc < Test::Unit::TestCase
       :b_return
     ], events)
   end
+
+  def test_branch_if
+    events = []
+    line1 = line2 = nil
+    TracePoint.new(:branch_true, :branch_false) { |tp| events << [tp.event, tp.lineno] }.enable do
+      line1 = __LINE__; if line1
+        1
+      else
+        2
+      end
+
+      line2 = __LINE__; if !line2
+        3
+      else
+        4
+      end
+    end
+    assert_equal([
+      [:branch_true, line1],
+      [:branch_false, line2],
+    ], events)
+  end
+
+  def test_branch_unless
+    events = []
+    line1 = line2 = nil
+    TracePoint.new(:branch_true, :branch_false) { |tp| events << [tp.event, tp.lineno] }.enable do
+      line1 = __LINE__; unless line1
+        1
+      else
+        2
+      end
+
+      line2 = __LINE__; unless !line2
+        3
+      else
+        4
+      end
+    end
+    assert_equal([
+      [:branch_true, line1],
+      [:branch_false, line2],
+    ], events)
+  end
+
+  def test_branch_case
+    events = []
+    baseline = nil
+    TracePoint.new(:branch_true, :branch_false) { |tp| events << [tp.event, tp.lineno] }.enable do
+      baseline = __LINE__
+      case baseline
+      when /test/
+        1
+      when 0
+        2
+      when Fixnum
+        3
+      else
+        4
+      end
+    end
+    assert_equal([
+      [:branch_false, baseline + 2],
+      [:branch_false, baseline + 4],
+      [:branch_true, baseline + 6],
+    ], events)
+  end
+
+  def test_branch_opt_case_dispatch_true
+    events = []
+    baseline = nil
+    TracePoint.new(:branch_true, :branch_false) { |tp| events << [tp.event, tp.lineno] }.enable do
+      baseline = __LINE__
+      case 100
+      when -1
+        1
+      when 100
+        2
+      else
+        3
+      end
+    end
+    assert_equal([
+      [:branch_true, baseline + 4],
+    ], events)
+  end
+
+  def test_branch_opt_case_dispatch_false
+    events = []
+    baseline = nil
+    TracePoint.new(:branch_true, :branch_false) { |tp| events << [tp.event, tp.lineno] }.enable do
+      baseline = __LINE__
+      case baseline
+      when -1
+        1
+      when -2
+        2
+      else
+        3
+      end
+    end
+    assert_equal([
+      [:branch_false, baseline + 1],
+    ], events)
+  end
+
+  def test_branch_opt_case_dispatch_implicit_else
+    events = []
+    baseline = nil
+    TracePoint.new(:branch_true, :branch_false) { |tp| events << [tp.event, tp.lineno] }.enable do
+      baseline = __LINE__
+      case baseline
+      when -1
+        1
+      when -2
+        2
+      end
+    end
+    assert_equal([
+      [:branch_false, baseline + 1],
+    ], events)
+  end
 end
